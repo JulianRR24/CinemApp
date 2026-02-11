@@ -106,8 +106,8 @@ lib/
 
 |              Inicio               |               Detalles               |               Catálogo                |
 | :-------------------------------: | :----------------------------------: | :-----------------------------------: |
-| _(Inserta aquí captura del Home)_ | _(Inserta aquí captura de Detalles)_ | _(Inserta aquí captura del Catálogo)_ |
+| _<img width="369" height="825" alt="image" src="https://github.com/user-attachments/assets/f40f7b8d-39ee-45b5-b357-cbd1492d5ef6" />_ | _<img width="372" height="823" alt="image" src="https://github.com/user-attachments/assets/02294b06-e6c5-408a-bd44-cee0ad390111" />_ | _<img width="374" height="820" alt="image" src="https://github.com/user-attachments/assets/db035468-8c2a-481a-8069-6f78a89c2126" />_ |
 
 ---
 
-Creado con 💙 por Devian.
+Creado por Julian Ramirez Reyes.
