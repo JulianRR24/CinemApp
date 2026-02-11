@@ -2,6 +2,8 @@
 
 ![CinemApp Banner](lib/assets/icons/Cinemapp.png)
 
+[![Live Demo](https://img.shields.io/badge/demo-online-green.svg)](https://julianramirezreyes.github.io/CinemApp/)
+
 **CinemApp** es una aplicación moderna y elegante para explorar el mundo del cine. Construida con **Flutter** y **Clean Architecture**, ofrece una experiencia de usuario fluida y visualmente impactante, integrando la potente API de TMDb.
 
 ---
@@ -104,8 +106,8 @@ lib/
 
 ## 📱 Capturas de Pantalla
 
-|              Inicio               |               Detalles               |               Catálogo                |
-| :-------------------------------: | :----------------------------------: | :-----------------------------------: |
+|                                                                Inicio                                                                |                                                               Detalles                                                               |                                                               Catálogo                                                               |
+| :----------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------: |
 | _<img width="369" height="825" alt="image" src="https://github.com/user-attachments/assets/f40f7b8d-39ee-45b5-b357-cbd1492d5ef6" />_ | _<img width="372" height="823" alt="image" src="https://github.com/user-attachments/assets/02294b06-e6c5-408a-bd44-cee0ad390111" />_ | _<img width="374" height="820" alt="image" src="https://github.com/user-attachments/assets/db035468-8c2a-481a-8069-6f78a89c2126" />_ |
 
 ---
