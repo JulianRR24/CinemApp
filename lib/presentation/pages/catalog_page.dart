@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/catalog_provider.dart';
+import '../providers/providers.dart';
+import '../widgets/movie_grid.dart';
+import '../widgets/filter_panel.dart';
 
 class CatalogPage extends ConsumerWidget {
   const CatalogPage({super.key});
@@ -11,77 +14,112 @@ class CatalogPage extends ConsumerWidget {
     final catalogState = ref.watch(catalogProvider);
     final notifier = ref.read(catalogProvider.notifier);
 
+    // Determine screen width for responsive layout
+    final width = MediaQuery.of(context).size.width;
+    final isDesktop = width >= 900;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Catalog'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search movies...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
+        actions: [
+          if (!isDesktop)
+            Builder(
+              builder: (context) {
+                return IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  onPressed: () {
+                    Scaffold.of(context).openEndDrawer();
+                  },
+                );
+              },
+            ),
+        ],
+      ),
+      endDrawer: !isDesktop
+          ? Drawer(
+              width: 300,
+              child: FilterPanel(
+                currentFilters: catalogState.filters,
+                onApply: (params) {
+                  notifier.updateFilters(params);
+                  Navigator.pop(context);
+                },
               ),
-              onSubmitted: (value) => notifier.searchMovies(value),
+            )
+          : null,
+      body: Row(
+        children: [
+          // Sidebar Filters on Desktop
+          if (isDesktop)
+            FilterPanel(
+              currentFilters: catalogState.filters,
+              onApply: (params) => notifier.updateFilters(params),
+            ),
+
+          if (isDesktop) const VerticalDivider(width: 1),
+
+          // Main Content
+          Expanded(
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification scrollInfo) {
+                if (scrollInfo.metrics.pixels >=
+                    scrollInfo.metrics.maxScrollExtent * 0.8) {
+                  notifier.fetchNextPage();
+                }
+                return false;
+              },
+              child: RefreshIndicator(
+                onRefresh: () async => notifier.resetFilters(),
+                child: catalogState.movies.isEmpty && catalogState.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : catalogState.movies.isEmpty && !catalogState.isLoading
+                    ? const Center(child: Text('No movies found'))
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: MovieGrid(
+                              movies: catalogState.movies,
+                              onTap: (movie) =>
+                                  context.push('/details', extra: movie),
+                              onWatched: (movie) async {
+                                await ref
+                                    .read(markMovieWatchedUseCaseProvider)
+                                    .call('default_user_v1', movie.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Marked "${movie.title}" as Watched',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              onIgnored: (movie) async {
+                                await ref
+                                    .read(markMovieIgnoredUseCaseProvider)
+                                    .call('default_user_v1', movie.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Marked "${movie.title}" as Ignored',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                          if (catalogState.isLoading &&
+                              catalogState.movies.isNotEmpty)
+                            const LinearProgressIndicator(),
+                        ],
+                      ),
+              ),
             ),
           ),
-        ),
-      ),
-      body: catalogState.movies.when(
-        data: (movies) {
-          if (movies.isEmpty) {
-            return const Center(child: Text('No movies found'));
-          }
-          return GridView.builder(
-            padding: const EdgeInsets.all(8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.7,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-            ),
-            itemCount: movies.length,
-            itemBuilder: (context, index) {
-              final movie = movies[index];
-              return GestureDetector(
-                onTap: () => context.push('/details', extra: movie),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: movie.posterPath != null
-                            ? Image.network(
-                                'https://image.tmdb.org/t/p/w500${movie.posterPath}',
-                                fit: BoxFit.cover,
-                              )
-                            : Container(
-                                color: Colors.grey,
-                                child: const Icon(Icons.movie),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      movie.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-        error: (err, stack) => Center(child: Text('Error: $err')),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        ],
       ),
     );
   }

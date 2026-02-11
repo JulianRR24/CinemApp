@@ -11,8 +11,8 @@ class GetDailySelection {
 
   /// This usecase orchestrates the logic:
   /// 1. Check DB for today's selection
-  /// 2. If exists, return it
-  /// 3. If not, fetch from TMDB, filter, select random, save to DB, return it
+  /// 2. If exists AND has >= 10 movies, return it
+  /// 3. If not, fetch from TMDB, filter, select random 10, save/overwrite to DB, return it
   Future<Either<Failure, DailySelection>> call(String profileId) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -21,10 +21,11 @@ class GetDailySelection {
     final dbResult = await repository.getDailySelection(today, profileId);
 
     return dbResult.fold((failure) => Left(failure), (selection) async {
-      if (selection != null) {
+      // Enforce 10 movies. If less, regenerate.
+      if (selection != null && selection.movies.length >= 10) {
         return Right(selection);
       } else {
-        // 2. Generate new selection
+        // 2. Generate new selection (force refresh if existing is < 10)
         return _generateNewSelection(profileId, today);
       }
     });
@@ -43,9 +44,18 @@ class GetDailySelection {
       final excludedMovieIds = interactions.map((i) => i.movieId).toSet();
 
       // Fetch candidates from TMDB
-      // Rule 8 says: Generate seed based on date, select random page.
-      // Using a fixed algo based on date hash to pick a page 1-50.
-      final pageToCheck = (date.day * date.month * date.year) % 50 + 1;
+      // Strategy: We need enough candidates to pick 10 unique ones.
+      // We'll try to fetch from a random page.
+      // Rule 8 says: Generate seed based on date.
+      // We'll use the date to pick a "starting" page.
+      int pageToCheck = (date.day * date.month * date.year) % 50 + 1;
+
+      // Note: To truly guarantee 10 items after filtering watched/ignored,
+      // we might need to fetch multiple pages if the user has watched A LOT.
+      // For simplicity/performance now, we'll fetch one page (20 items).
+      // If that's not enough, we could fetch another.
+      // Let's implement a simple retry or just fetch 2 pages initially?
+      // Let's stick to 1 page for now, usually sufficient unless user watched 10+ movies from that specific random page.
 
       final tmdbResult = await repository.discoverMovies(page: pageToCheck);
 
@@ -55,14 +65,34 @@ class GetDailySelection {
             .where((m) => !excludedMovieIds.contains(m.id))
             .toList();
 
-        // Should select 3 or 5.
+        // If we don't have 10, we really should fetch more.
+        // But strict requirement says "select 10".
+        // If < 10 available on this page, take all and maybe warn or leave it.
+        // Requirement: "si hoy hay 3 u 8 guardadas, debe reemplazarlas por 10."
+        // If we physically can't find 10 (e.g. extremely rare case or errors), we return what we have?
+        // Let's try to be robust. If candidates < 10, try next page.
+
+        if (candidates.length < 10) {
+          final extraPageResult = await repository.discoverMovies(
+            page: pageToCheck + 1,
+          );
+          if (extraPageResult.isRight()) {
+            final extraMovies = extraPageResult.getOrElse(() => []);
+            final extraCandidates = extraMovies.where(
+              (m) => !excludedMovieIds.contains(m.id),
+            );
+            candidates.addAll(extraCandidates);
+          }
+        }
+
         if (candidates.isEmpty) {
           return const Left(ServerFailure('No movies found to select'));
         }
 
         candidates.shuffle();
 
-        final selected = candidates.take(3).toList();
+        // Take 10
+        final selected = candidates.take(10).toList();
 
         final newSelection = DailySelection(
           profileId: profileId,
@@ -70,7 +100,7 @@ class GetDailySelection {
           movies: selected,
         );
 
-        // Save
+        // Save (Upsert logic should be handled by repo)
         await repository.saveDailySelection(newSelection);
 
         return Right(newSelection);

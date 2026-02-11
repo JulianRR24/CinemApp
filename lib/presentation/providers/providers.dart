@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/datasources/tmdb_remote_datasource.dart';
-import '../../data/datasources/supabase_datasource.dart';
+import '../../data/datasources/supabase_local_datasource.dart';
 import '../../data/repositories/movie_repository_impl.dart';
 import '../../domain/repositories/movie_repository.dart';
 import '../../domain/usecases/movie_usecases.dart';

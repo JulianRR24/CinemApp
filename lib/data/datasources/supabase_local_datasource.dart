@@ -3,13 +3,33 @@ import '../../core/errors/exceptions.dart';
 import '../models/daily_selection_model.dart';
 import '../models/interaction_model.dart';
 
+class DailySelectionRow {
+  final String? id;
+  final String profileId;
+  final DateTime date;
+  final List<int> movieIds;
+
+  DailySelectionRow({
+    this.id,
+    required this.profileId,
+    required this.date,
+    required this.movieIds,
+  });
+
+  factory DailySelectionRow.fromJson(Map<String, dynamic> json) {
+    return DailySelectionRow(
+      id: json['id'],
+      profileId: json['profile_id'],
+      date: DateTime.parse(json['date']),
+      movieIds: List<int>.from(json['movie_ids'] ?? []),
+    );
+  }
+}
+
 abstract class SupabaseLocalDataSource {
-  Future<Map<String, dynamic>?> getDailySelection(
-    String profileId,
-    DateTime date,
-  );
+  Future<DailySelectionRow?> getDailySelection(DateTime date, String profileId);
   Future<void> saveDailySelection(DailySelectionModel selection);
-  Future<List<InteractionModel>> getInteractions(String profileId);
+  Future<List<InteractionModel>> getUserInteractions(String profileId);
   Future<void> saveInteraction(InteractionModel interaction);
   Future<void> deleteInteraction(String profileId, int movieId);
 }
@@ -20,9 +40,9 @@ class SupabaseLocalDataSourceImpl implements SupabaseLocalDataSource {
   SupabaseLocalDataSourceImpl({required this.supabase});
 
   @override
-  Future<Map<String, dynamic>?> getDailySelection(
-    String profileId,
+  Future<DailySelectionRow?> getDailySelection(
     DateTime date,
+    String profileId,
   ) async {
     try {
       final dateStr = date.toIso8601String().split('T')[0];
@@ -33,7 +53,10 @@ class SupabaseLocalDataSourceImpl implements SupabaseLocalDataSource {
           .eq('date', dateStr)
           .maybeSingle();
 
-      return response;
+      if (response != null) {
+        return DailySelectionRow.fromJson(response);
+      }
+      return null;
     } catch (e) {
       throw DatabaseException(e.toString());
     }
@@ -44,14 +67,14 @@ class SupabaseLocalDataSourceImpl implements SupabaseLocalDataSource {
     try {
       await supabase
           .from('CinemApp_daily_selections')
-          .insert(selection.toJson());
+          .upsert(selection.toJson()); // Use upsert to handle overwrite
     } catch (e) {
       throw DatabaseException(e.toString());
     }
   }
 
   @override
-  Future<List<InteractionModel>> getInteractions(String profileId) async {
+  Future<List<InteractionModel>> getUserInteractions(String profileId) async {
     try {
       final response = await supabase
           .from('CinemApp_user_interactions')

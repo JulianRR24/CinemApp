@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/daily_selection_provider.dart';
 import '../providers/providers.dart';
-import '../widgets/movie_card.dart';
+import '../widgets/movie_grid.dart'; // Use the new grid
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -20,43 +20,26 @@ class HomePage extends ConsumerWidget {
             return const Center(child: Text('No selection for today'));
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.only(bottom: 20),
-            itemCount: selection.movies.length,
-            itemBuilder: (context, index) {
-              final movie = selection.movies[index];
-              return MovieCard(
-                movie: movie,
-                onTap: () {
-                  context.push('/details', extra: movie);
-                },
-                onWatched: () async {
-                  final scaffoldMessenger = ScaffoldMessenger.of(context);
-                  // In a real app we'd get profileId from auth state
-                  await ref
-                      .read(markMovieWatchedUseCaseProvider)
-                      .call('default_user_v1', movie.id);
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text('Marked "${movie.title}" as Watched'),
-                    ),
-                  );
-                  // Refresh selection?? Requirements trigger state change but maybe not remove from daily list visually immediately?
-                  // "Estado de Película: Neutral. Acciones: Insertar..."
-                  // "Debe existir opcion revertir estado".
-                  // Visual feedback only for now.
-                },
-                onIgnored: () async {
-                  final scaffoldMessenger = ScaffoldMessenger.of(context);
-                  await ref
-                      .read(markMovieIgnoredUseCaseProvider)
-                      .call('default_user_v1', movie.id);
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text('Marked "${movie.title}" as Ignored'),
-                    ),
-                  );
-                },
+          return MovieGrid(
+            movies: selection.movies,
+            onTap: (movie) => context.push('/details', extra: movie),
+            onWatched: (movie) async {
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              await ref
+                  .read(markMovieWatchedUseCaseProvider)
+                  .call('default_user_v1', movie.id);
+              scaffoldMessenger.showSnackBar(
+                SnackBar(content: Text('Marked "${movie.title}" as Watched')),
+              );
+              // Refresh selection if needed, or just visual feedback
+            },
+            onIgnored: (movie) async {
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              await ref
+                  .read(markMovieIgnoredUseCaseProvider)
+                  .call('default_user_v1', movie.id);
+              scaffoldMessenger.showSnackBar(
+                SnackBar(content: Text('Marked "${movie.title}" as Ignored')),
               );
             },
           );

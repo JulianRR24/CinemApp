@@ -2,26 +2,74 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/movie.dart';
 import 'providers.dart';
 
-class CatalogState {
-  final AsyncValue<List<Movie>> movies;
-  final String searchQuery;
-  final bool isSearching;
+class FilterParams {
+  final String sortBy;
+  final List<String> withGenres;
+  final DateTime? releaseDateGte;
+  final DateTime? releaseDateLte;
+  final double? voteAverageGte;
+  final String? withOriginalLanguage;
 
-  CatalogState({
+  const FilterParams({
+    this.sortBy = 'popularity.desc',
+    this.withGenres = const [],
+    this.releaseDateGte,
+    this.releaseDateLte,
+    this.voteAverageGte,
+    this.withOriginalLanguage,
+  });
+
+  FilterParams copyWith({
+    String? sortBy,
+    List<String>? withGenres,
+    DateTime? releaseDateGte,
+    DateTime? releaseDateLte,
+    double? voteAverageGte,
+    String? withOriginalLanguage,
+  }) {
+    return FilterParams(
+      sortBy: sortBy ?? this.sortBy,
+      withGenres: withGenres ?? this.withGenres,
+      releaseDateGte: releaseDateGte ?? this.releaseDateGte,
+      releaseDateLte: releaseDateLte ?? this.releaseDateLte,
+      voteAverageGte: voteAverageGte ?? this.voteAverageGte,
+      withOriginalLanguage: withOriginalLanguage ?? this.withOriginalLanguage,
+    );
+  }
+}
+
+class CatalogState {
+  final List<Movie> movies;
+  final bool isLoading;
+  final bool hasMore;
+  final int page;
+  final String? errorMessage;
+  final FilterParams filters;
+
+  const CatalogState({
     required this.movies,
-    this.searchQuery = '',
-    this.isSearching = false,
+    this.isLoading = false,
+    this.hasMore = true,
+    this.page = 1,
+    this.errorMessage,
+    this.filters = const FilterParams(),
   });
 
   CatalogState copyWith({
-    AsyncValue<List<Movie>>? movies,
-    String? searchQuery,
-    bool? isSearching,
+    List<Movie>? movies,
+    bool? isLoading,
+    bool? hasMore,
+    int? page,
+    String? errorMessage,
+    FilterParams? filters,
   }) {
     return CatalogState(
       movies: movies ?? this.movies,
-      searchQuery: searchQuery ?? this.searchQuery,
-      isSearching: isSearching ?? this.isSearching,
+      isLoading: isLoading ?? this.isLoading,
+      hasMore: hasMore ?? this.hasMore,
+      page: page ?? this.page,
+      errorMessage: errorMessage,
+      filters: filters ?? this.filters,
     );
   }
 }
@@ -30,46 +78,70 @@ class CatalogNotifier extends Notifier<CatalogState> {
   @override
   CatalogState build() {
     // Initial load
-    Future.microtask(() => discoverMovies());
-    return CatalogState(movies: const AsyncValue.loading());
+    Future.microtask(() => fetchNextPage());
+    return const CatalogState(movies: [], isLoading: true);
   }
 
-  Future<void> discoverMovies() async {
-    state = state.copyWith(
-      movies: const AsyncValue.loading(),
-      isSearching: false,
-    );
-    final result = await ref
-        .read(movieRepositoryProvider)
-        .discoverMovies(page: 1);
+  Future<void> fetchNextPage() async {
+    if (!state.hasMore) return;
 
-    result.fold(
-      (failure) => state = state.copyWith(
-        movies: AsyncValue.error(failure.message, StackTrace.current),
-      ),
-      (movies) => state = state.copyWith(movies: AsyncValue.data(movies)),
-    );
-  }
-
-  Future<void> searchMovies(String query) async {
-    if (query.isEmpty) {
-      discoverMovies();
+    if (state.isLoading && state.movies.isNotEmpty) {
       return;
     }
 
-    state = state.copyWith(
-      movies: const AsyncValue.loading(),
-      searchQuery: query,
-      isSearching: true,
-    );
-    final result = await ref.read(movieRepositoryProvider).searchMovies(query);
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    final result = await ref
+        .read(movieRepositoryProvider)
+        .discoverMovies(
+          page: state.page,
+          sortBy: state.filters.sortBy,
+          withGenres: state.filters.withGenres.isNotEmpty
+              ? state.filters.withGenres.join(',')
+              : null,
+          releaseDateGte: state.filters.releaseDateGte?.toIso8601String().split(
+            'T',
+          )[0],
+          releaseDateLte: state.filters.releaseDateLte?.toIso8601String().split(
+            'T',
+          )[0],
+          voteAverageGte: state.filters.voteAverageGte,
+          withOriginalLanguage: state.filters.withOriginalLanguage,
+        );
 
     result.fold(
       (failure) => state = state.copyWith(
-        movies: AsyncValue.error(failure.message, StackTrace.current),
+        isLoading: false,
+        errorMessage: failure.message,
       ),
-      (movies) => state = state.copyWith(movies: AsyncValue.data(movies)),
+      (newMovies) {
+        if (newMovies.isEmpty) {
+          state = state.copyWith(isLoading: false, hasMore: false);
+        } else {
+          state = state.copyWith(
+            isLoading: false,
+            hasMore: true,
+            movies: [...state.movies, ...newMovies],
+            page: state.page + 1,
+          );
+        }
+      },
     );
+  }
+
+  void updateFilters(FilterParams newFilters) {
+    state = state.copyWith(
+      filters: newFilters,
+      movies: [], // Clear list
+      page: 1, // Reset page
+      hasMore: true,
+      isLoading: true,
+    );
+    fetchNextPage();
+  }
+
+  void resetFilters() {
+    updateFilters(const FilterParams());
   }
 }
 
