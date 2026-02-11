@@ -9,6 +9,8 @@ class MovieModel extends Movie {
     super.backdropPath,
     required super.releaseDate,
     required super.voteAverage,
+    super.voteCount,
+    super.popularity,
     super.genreIds,
     super.runtime,
     super.budget,
@@ -25,10 +27,10 @@ class MovieModel extends Movie {
       backdropPath: json['backdrop_path'],
       releaseDate: json['release_date'] ?? '',
       voteAverage: (json['vote_average'] as num?)?.toDouble() ?? 0.0,
+      voteCount: json['vote_count'] as int?,
+      popularity: (json['popularity'] as num?)?.toDouble(),
       genreIds: json['genre_ids'] != null
-          ? List<String>.from(
-              (json['genre_ids'] as List).map((e) => e.toString()),
-            )
+          ? List<int>.from(json['genre_ids'])
           : [],
       // Details fields
       runtime: json['runtime'],
@@ -53,6 +55,8 @@ class MovieModel extends Movie {
       'backdrop_path': backdropPath,
       'release_date': releaseDate,
       'vote_average': voteAverage,
+      'vote_count': voteCount,
+      'popularity': popularity,
       'genre_ids': genreIds,
       'runtime': runtime,
       'budget': budget,

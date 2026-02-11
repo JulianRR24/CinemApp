@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../core/errors/exceptions.dart';
 import '../models/movie_model.dart';
+import '../models/movie_detail_model.dart';
+import '../models/person_model.dart';
 
 abstract class TMDbRemoteDataSource {
   Future<List<MovieModel>> discoverMovies({
@@ -15,7 +17,11 @@ abstract class TMDbRemoteDataSource {
     String? withOriginalLanguage,
   });
   Future<List<MovieModel>> searchMovies(String query);
-  Future<MovieModel> getMovieDetails(int movieId);
+  Future<MovieDetailModel> getMovieDetails(int movieId);
+  Future<PersonModel> getPersonDetails(int personId);
+  Future<List<dynamic>> searchMulti(
+    String query,
+  ); // Returns list of json objects (Movie or Person)
 }
 
 class TMDbRemoteDataSourceImpl implements TMDbRemoteDataSource {
@@ -81,6 +87,10 @@ class TMDbRemoteDataSourceImpl implements TMDbRemoteDataSource {
 
   @override
   Future<List<MovieModel>> searchMovies(String query) async {
+    // Legacy search, maybe deprecated or redirected to searchMulti?
+    // User asked for "search/multi" for global search.
+    // Catalog search "Buscador en Catálogo" -> should use search/multi.
+    // Keep this for now if needed.
     final response = await client.get(
       Uri.parse('$_baseUrl/search/movie?language=es-ES&query=$query'),
       headers: _headers,
@@ -96,14 +106,47 @@ class TMDbRemoteDataSourceImpl implements TMDbRemoteDataSource {
   }
 
   @override
-  Future<MovieModel> getMovieDetails(int movieId) async {
+  Future<MovieDetailModel> getMovieDetails(int movieId) async {
     final response = await client.get(
-      Uri.parse('$_baseUrl/movie/$movieId?language=es-ES'),
+      Uri.parse(
+        '$_baseUrl/movie/$movieId?language=es-ES&append_to_response=credits,videos,images,recommendations,similar',
+      ),
       headers: _headers,
     );
 
     if (response.statusCode == 200) {
-      return MovieModel.fromJson(json.decode(response.body));
+      return MovieDetailModel.fromJson(json.decode(response.body));
+    } else {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<PersonModel> getPersonDetails(int personId) async {
+    final response = await client.get(
+      Uri.parse(
+        '$_baseUrl/person/$personId?language=es-ES&append_to_response=movie_credits,images',
+      ),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      return PersonModel.fromJson(json.decode(response.body));
+    } else {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<List<dynamic>> searchMulti(String query) async {
+    final response = await client.get(
+      Uri.parse('$_baseUrl/search/multi?language=es-ES&query=$query'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['results'] as List;
     } else {
       throw ServerException();
     }

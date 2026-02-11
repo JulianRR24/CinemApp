@@ -13,7 +13,7 @@ class HomePage extends ConsumerWidget {
     final dailySelectionState = ref.watch(dailySelectionProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Daily Selection')),
+      appBar: AppBar(title: const Text('Selección Diaria')),
       body: dailySelectionState.when(
         data: (selection) {
           if (selection == null || selection.movies.isEmpty) {
@@ -22,7 +22,7 @@ class HomePage extends ConsumerWidget {
 
           return MovieGrid(
             movies: selection.movies,
-            onTap: (movie) => context.push('/details', extra: movie),
+            onTap: (movie) => context.push('/movie/${movie.id}', extra: movie),
             onWatched: (movie) async {
               final scaffoldMessenger = ScaffoldMessenger.of(context);
               await ref

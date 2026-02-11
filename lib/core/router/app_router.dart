@@ -4,6 +4,7 @@ import '../../presentation/pages/home_page.dart';
 import '../../presentation/pages/catalog_page.dart';
 import '../../presentation/pages/history_page.dart';
 import '../../presentation/pages/details_page.dart';
+import '../../presentation/pages/person_details_page.dart';
 import '../../presentation/widgets/scaffold_with_nav.dart';
 import '../../domain/entities/movie.dart';
 
@@ -20,20 +21,7 @@ final router = GoRouter(
         return ScaffoldWithNavBar(child: child);
       },
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const HomePage(),
-          routes: [
-            GoRoute(
-              path: 'details',
-              parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) {
-                final movie = state.extra as Movie;
-                return DetailsPage(movie: movie);
-              },
-            ),
-          ],
-        ),
+        GoRoute(path: '/', builder: (context, state) => const HomePage()),
         GoRoute(
           path: '/catalog',
           builder: (context, state) => const CatalogPage(),
@@ -43,6 +31,27 @@ final router = GoRouter(
           builder: (context, state) => const HistoryPage(),
         ),
       ],
+    ),
+    // Details Routes (outside Shell to cover bottom bar?)
+    // User often wants details to cover everything. `parentNavigatorKey: _rootNavigatorKey`.
+    GoRoute(
+      path: '/movie/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final idStr = state.pathParameters['id'];
+        final id = int.tryParse(idStr ?? '') ?? 0;
+        final movie = state.extra as Movie?;
+        return MovieDetailsPage(movieId: id, placeholderMovie: movie);
+      },
+    ),
+    GoRoute(
+      path: '/person/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final idStr = state.pathParameters['id'];
+        final id = int.tryParse(idStr ?? '') ?? 0;
+        return PersonDetailsPage(personId: id);
+      },
     ),
   ],
 );

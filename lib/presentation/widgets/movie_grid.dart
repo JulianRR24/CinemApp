@@ -5,15 +5,15 @@ import 'movie_poster_card.dart';
 class MovieGrid extends StatelessWidget {
   final List<Movie> movies;
   final Function(Movie) onTap;
-  final Function(Movie) onWatched;
-  final Function(Movie) onIgnored;
+  final Function(Movie)? onWatched;
+  final Function(Movie)? onIgnored;
 
   const MovieGrid({
     super.key,
     required this.movies,
     required this.onTap,
-    required this.onWatched,
-    required this.onIgnored,
+    this.onWatched,
+    this.onIgnored,
   });
 
   @override
@@ -47,8 +47,8 @@ class MovieGrid extends StatelessWidget {
             return MoviePosterItem(
               movie: movie,
               onTap: () => onTap(movie),
-              onWatched: () => onWatched(movie),
-              onIgnored: () => onIgnored(movie),
+              onWatched: onWatched != null ? () => onWatched!(movie) : null,
+              onIgnored: onIgnored != null ? () => onIgnored!(movie) : null,
             );
           },
         );

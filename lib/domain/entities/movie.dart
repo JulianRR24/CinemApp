@@ -8,7 +8,9 @@ class Movie extends Equatable {
   final String? backdropPath;
   final String releaseDate;
   final double voteAverage;
-  final List<String> genreIds; // Simplified for list view
+  final int? voteCount;
+  final double? popularity;
+  final List<int> genreIds; // Changed to int as TMDB returns int ids
 
   // Details fields (nullable as they might not be fetched in list view)
   final int? runtime;
@@ -24,6 +26,8 @@ class Movie extends Equatable {
     this.backdropPath,
     required this.releaseDate,
     required this.voteAverage,
+    this.voteCount,
+    this.popularity,
     this.genreIds = const [],
     this.runtime,
     this.budget,
@@ -40,6 +44,8 @@ class Movie extends Equatable {
     backdropPath,
     releaseDate,
     voteAverage,
+    voteCount,
+    popularity,
     genreIds,
     runtime,
     budget,

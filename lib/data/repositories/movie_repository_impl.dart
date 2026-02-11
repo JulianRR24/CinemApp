@@ -4,11 +4,16 @@ import '../../core/errors/failures.dart';
 import '../../domain/entities/daily_selection.dart';
 import '../../domain/entities/interaction.dart';
 import '../../domain/entities/movie.dart';
+import '../../domain/entities/movie_detail.dart';
+import '../../domain/entities/person.dart';
+import '../../domain/entities/search_result.dart';
 import '../../domain/repositories/movie_repository.dart';
 import '../datasources/supabase_local_datasource.dart';
 import '../datasources/tmdb_remote_datasource.dart';
 import '../models/daily_selection_model.dart';
 import '../models/interaction_model.dart';
+import '../models/movie_model.dart';
+import '../models/person_model.dart';
 
 class MovieRepositoryImpl implements MovieRepository {
   final TMDbRemoteDataSource remoteDataSource;
@@ -58,10 +63,40 @@ class MovieRepositoryImpl implements MovieRepository {
   }
 
   @override
-  Future<Either<Failure, Movie>> getMovieDetails(int movieId) async {
+  Future<Either<Failure, List<SearchResult>>> searchMulti(String query) async {
+    try {
+      final results = await remoteDataSource.searchMulti(query);
+      final searchResults = <SearchResult>[];
+
+      for (final item in results) {
+        final mediaType = item['media_type'];
+        if (mediaType == 'movie') {
+          searchResults.add(MovieSearchResult(MovieModel.fromJson(item)));
+        } else if (mediaType == 'person') {
+          searchResults.add(PersonSearchResult(PersonModel.fromJson(item)));
+        }
+      }
+      return Right(searchResults);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, MovieDetail>> getMovieDetails(int movieId) async {
     try {
       final movie = await remoteDataSource.getMovieDetails(movieId);
       return Right(movie);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Person>> getPersonDetails(int personId) async {
+    try {
+      final person = await remoteDataSource.getPersonDetails(personId);
+      return Right(person);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     }
@@ -81,20 +116,15 @@ class MovieRepositoryImpl implements MovieRepository {
       }
 
       // 2. Fetch movies for these IDs
-      // We accept that this might fail partially?
-      // Or we fail whole selection if one movie fails?
-      // Robustness: If movie fetch fails, we skip it?
-      // But we need 10. If we skip, we have < 10.
-      // And the usecase checks count.
-
       final List<Movie> movies = [];
       for (final movieId in row.movieIds) {
         try {
+          // We use getMovieDetails but it returns MovieDetailModel (which is a MovieData).
+          // We can just use it as Movie.
           final movie = await remoteDataSource.getMovieDetails(movieId);
           movies.add(movie);
         } catch (e) {
-          // Skip failed movie (maybe deleted from TMDB?)
-          // Log error?
+          // Skip failed movie
         }
       }
 

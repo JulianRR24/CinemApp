@@ -14,11 +14,11 @@ class HistoryPage extends ConsumerWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('History'),
+          title: const Text('Historial'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'Watched'),
-              Tab(text: 'Ignored'),
+              Tab(text: 'Visto'),
+              Tab(text: 'Saltado'),
             ],
           ),
         ),
@@ -51,7 +51,7 @@ class HistoryPage extends ConsumerWidget {
     List<HistoryItem> items,
   ) {
     if (items.isEmpty) {
-      return const Center(child: Text('No items yet'));
+      return const Center(child: Text('Aún no hay elementos'));
     }
     return ListView.builder(
       itemCount: items.length,
@@ -69,13 +69,15 @@ class HistoryPage extends ConsumerWidget {
                 )
               : const Icon(Icons.movie),
           title: Text(movie.title),
-          subtitle: Text('Rated: ${movie.voteAverage}'),
+          subtitle: Text('Valoración: ${movie.voteAverage}'),
           trailing: IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () {
               ref.read(historyProvider.notifier).revertInteraction(movie.id);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Removed ${movie.title} from history')),
+                SnackBar(
+                  content: Text('Eliminado ${movie.title} del historial'),
+                ),
               );
             },
           ),

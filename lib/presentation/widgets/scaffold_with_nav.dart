@@ -17,17 +17,17 @@ class ScaffoldWithNavBar extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.movie_filter_outlined),
             selectedIcon: Icon(Icons.movie_filter),
-            label: 'Selection',
+            label: 'Selección',
           ),
           NavigationDestination(
             icon: Icon(Icons.grid_view_outlined),
             selectedIcon: Icon(Icons.grid_view),
-            label: 'Catalog',
+            label: 'Catálogo',
           ),
           NavigationDestination(
             icon: Icon(Icons.history_outlined),
             selectedIcon: Icon(Icons.history),
-            label: 'History',
+            label: 'Historial',
           ),
         ],
       ),

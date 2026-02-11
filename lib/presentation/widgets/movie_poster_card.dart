@@ -5,15 +5,15 @@ import '../../domain/entities/movie.dart';
 class MoviePosterCard extends StatefulWidget {
   final Movie movie;
   final VoidCallback onTap;
-  final VoidCallback onWatched;
-  final VoidCallback onIgnored;
+  final VoidCallback? onWatched;
+  final VoidCallback? onIgnored;
 
   const MoviePosterCard({
     super.key,
     required this.movie,
     required this.onTap,
-    required this.onWatched,
-    required this.onIgnored,
+    this.onWatched,
+    this.onIgnored,
   });
 
   @override
@@ -115,27 +115,35 @@ class _MoviePosterCardState extends State<MoviePosterCard> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Actions
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _ActionButton(
-                                icon: Icons.check_circle,
-                                color: Colors.green,
-                                label: 'Seen',
-                                onPressed: widget.onWatched,
-                              ),
-                              const SizedBox(width: 16),
-                              _ActionButton(
-                                icon: Icons.cancel,
-                                color: Colors.red,
-                                label: 'Skip',
-                                onPressed: widget.onIgnored,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
+                          if (widget.onWatched != null ||
+                              widget.onIgnored != null)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (widget.onWatched != null)
+                                  _ActionButton(
+                                    icon: Icons.check_circle,
+                                    color: Colors.green,
+                                    label: 'Visto',
+                                    onPressed: widget.onWatched!,
+                                  ),
+                                if (widget.onWatched != null &&
+                                    widget.onIgnored != null)
+                                  const SizedBox(width: 16),
+                                if (widget.onIgnored != null)
+                                  _ActionButton(
+                                    icon: Icons.cancel,
+                                    color: Colors.red,
+                                    label: 'Saltar',
+                                    onPressed: widget.onIgnored!,
+                                  ),
+                              ],
+                            ),
+                          if (widget.onWatched != null ||
+                              widget.onIgnored != null)
+                            const SizedBox(height: 12),
                           const Chip(
-                            label: Text('Details'),
+                            label: Text('Detalles'),
                             backgroundColor: Colors.white24,
                             labelStyle: TextStyle(
                               color: Colors.white,
@@ -192,15 +200,15 @@ class _ActionButton extends StatelessWidget {
 class MoviePosterItem extends StatelessWidget {
   final Movie movie;
   final VoidCallback onTap;
-  final VoidCallback onWatched;
-  final VoidCallback onIgnored;
+  final VoidCallback? onWatched;
+  final VoidCallback? onIgnored;
 
   const MoviePosterItem({
     super.key,
     required this.movie,
     required this.onTap,
-    required this.onWatched,
-    required this.onIgnored,
+    this.onWatched,
+    this.onIgnored,
   });
 
   @override
